@@ -1,2 +1,2 @@
 # sudokusolver
- Sudoku solver w/ "Greedy Best Depth First" search
+ Sudoku solver w/ "Greedy Best-Depth First" search
