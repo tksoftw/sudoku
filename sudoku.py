@@ -288,15 +288,85 @@ def validBoard(br):
     return not any((br[i][j] != '.' and (br[i].count(br[i][j]) > 1  or rv[j].count(br[i][j]) > 1 or bx[get_box_num(i, j)].count(br[i][j]) > 1) ) for i in range(9) for j in range(9))
 
 
+class Grid:
+    def __init__(self):
+        self.dim = 9
+        #self.grid = [['.']*dim for _ in range(dim)]
+        #self.viewable_grid = [["."]*dim for _ in range(dim)]
+
+        self.viewable_grid = board6b
+        self.grid = greedyBestDepthFirst(self.viewable_grid)
+
+        self.hints = { (i,j):v for i, row in enumerate(self.viewable_grid) for j, v in enumerate(row) if v.isdigit()}
+
+    def boardToStr(self, boardArr):
+        resultStr = ''
+        for row in boardArr:
+            for v in row:
+                resultStr += v
+        return resultStr
+
+    def boardFromStr(self, boardStr):
+        resultArr = []
+        for i, v in enumerate(boardStr):
+            if i % self.dim == 0:
+                resultArr.append([])
+            resultArr[-1].append(v)
+        return resultArr
+
+    def is_hint(self, i, j):
+        return (i,j) in self.hints
+
+    def is_solved(self, i, j):
+        return self.boardToStr(self.viewable_grid) == self.boardToStr(self.grid)
+
+    def guess_number(self, i, j, n: str):
+        if self.is_hint(i,j):
+            return
+        self.viewable_grid[i][j] = n
+
+    def remove_guess(self, i, j):
+        if self.viewable_grid[i][j] == '.':
+            return
+        self.guess_number(i,j, '.')
+    
+    def print(self):
+        for row in self.viewable_grid:
+            print(' '.join(row))
+
+    def play_game(self):
+        while True:
+            self.print()
+            choice = input('Would you like to make a guess (G) or remove a guess (R)? ').lower()
+            row = int(input('Enter the row of the guess: '))-1
+            col = int(input('Enter the col of the guess: '))-1
+            if choice == 'g':
+                num = input('Enter number to guess: ')
+                self.guess_number(row,col,num)
+            else:
+                self.remove_guess(row,col)
+
 if __name__ == '__main__':
-    b = board6b
-    print('='*10,'initial','='*10)
-    print_board(b)
-    os.system('pause')
-    t1_start = time.perf_counter()
-    solved = greedyBestDepthFirst(b)
-    t1_stop = time.perf_counter()
-    print('='*10,'solved','='*10)
-    print_board(solved)
-    print('Valid Solution?', validBoard(solved))
-    print('Elapsed time in seconds:', t1_stop-t1_start)
+    g = Grid()
+    g.print()
+    for i in range(g.dim):
+        for j in range(g.dim):
+            g.guess_number(i,j,str(1))
+    g.print()
+    for i in range(g.dim):
+        for j in range(g.dim):
+            g.remove_guess(i,j)
+    g.print()
+    #g.play_game()
+
+#    b = board6b
+#    print('='*10,'initial','='*10)
+#    print_board(b)
+#    os.system('pause')
+#    t1_start = time.perf_counter()
+#    solved = greedyBestDepthFirst(b)
+#    t1_stop = time.perf_counter()
+#    print('='*10,'solved','='*10)
+#    print_board(solved)
+#    print('Valid Solution?', validBoard(solved))
+#    print('Elapsed time in seconds:', t1_stop-t1_start)
