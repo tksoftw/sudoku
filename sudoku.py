@@ -313,6 +313,9 @@ class Grid:
                 resultArr.append([])
             resultArr[-1].append(v)
         return resultArr
+    
+    def is_in_bounds(self, i, j):
+        return i in range(self.dim) and j in range(self.dim)
 
     def is_hint(self, i, j):
         return (i,j) in self.hints
@@ -357,7 +360,7 @@ if __name__ == '__main__':
         for j in range(g.dim):
             g.remove_guess(i,j)
     g.print()
-    #g.play_game()
+    g.play_game()
 
 #    b = board6b
 #    print('='*10,'initial','='*10)
