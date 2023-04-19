@@ -81,35 +81,41 @@ class GridGUI():
     def draw_tile(self, i, j, color=COLORS['light_grey']):
         xpos, ypos = [ind*self.box_size + self.total_border for ind in (j, i)]
         box = pygame.Rect(xpos, ypos, self.box_size, self.box_size)
-        pygame.draw.rect(self.screen, color, box)
+        pygame.draw.rect(self.screen, color, box, 5)
         if self.g.viewable_grid[i][j].isdigit():
             num_color = COLORS['black'] if (i, j) in self.g.hints else COLORS['mid_grey']
             cell_number = self.font.render(self.g.viewable_grid[i][j], True, num_color)
             aligner = cell_number.get_rect(center=(box.centerx, box.centery))
             self.screen.blit(cell_number, aligner)
 
-        cell = pygame.draw.rect(self.screen, COLORS['black'], box, 1)
-        return cell
+        pygame.draw.rect(self.screen, COLORS['black'], box, 1)
+        return box
 
-    def color_hover(self, i, j):
-        if A:=(self.hover is not None and self.g.viewable_grid[self.hover[0]][self.hover[1]] == '-'):
-            self.draw_tile(*self.hover)
+    def color_hover(self, i, j, color=COLORS['mid_grey']):
+        tile_list = []
+        if A:=(self.hover is not None and not self.g.is_hint(*self.hover)):
+            tile_list.append(self.draw_tile(*self.hover))
             self.hover = None
-        if B:=(self.g.is_in_bounds(i,j) and self.g.viewable_grid[i][j] == '-'):
-            self.draw_tile(i, j, COLORS['mid_grey'])
+        if B:=(self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j)):
+            tile_list.append(self.draw_tile(i, j, color))
             self.hover = (i, j)
         if A or B:
-            pygame.display.update()
+            pygame.display.update(tile_list)
     
-    def change_selected(self, i, j):
-        if B:=(self.selected is not None):
+    def change_selected(self, i, j, color=COLORS['grey']):
+        if self.selected == (i,j):
             self.draw_tile(*self.selected)
             self.selected = None
-        if A:=(self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j)):
-            self.draw_tile(i, j, COLORS['grey'])
-            self.selected = (i,j)
-        if A or B:
             pygame.display.update()
+            return
+
+        if self.selected is not None:
+            self.draw_tile(*self.selected)
+            self.selected = None
+        if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j):
+            self.draw_tile(i, j, color)
+            self.selected = (i,j)
+        pygame.display.update()
 
     def translate_coords_to_grid(self, x, y):
         return (x, y-self.timer.h)
@@ -290,7 +296,16 @@ class GridGUI():
     
     def play_game(self):
         first_click = False
+        #l = []
+        #for j in range(9):
+        #    t = self.draw_tile(0,j, COLORS['red'])
+        #    l.append(t)
+        #pygame.display.update(l)
+        R = pygame.Rect(0,0, 100, 100)
+        r = pygame.draw.rect(self.screen, COLORS['green'], R)
         while True:
+            
+            pygame.display.update(R)
             self.timer.update_clock_dynamic()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -305,7 +320,7 @@ class GridGUI():
                 
                 if event.type == pygame.MOUSEMOTION:
                     i, j = self.get_box_inds_from_pos(*event.pos)
-                    self.color_hover(i,j)
+                    self.color_hover(i,j, COLORS['blue'])
                 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.is_in_playable_area(*event.pos):
                     if not first_click:
