@@ -306,6 +306,12 @@ class GridGUI():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     raise StopIteration
+                
+                if not self.selected is None and event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
+                    self.place_number(self.selected, 1)
+
+                if not self.selected is None and event.type == pygame.MOUSEBUTTONDOWN and event.button == 3: # right click
+                    self.remove_number(self.selected)
 
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     resume_game = self.pause_menu()
