@@ -42,6 +42,8 @@ class GridGUI():
 
         self.hover = None
         self.selected = None
+        self.blink_on = False
+        self.blink_restore_color = None
 
         self.game_won = False
         self.draw_grid()
@@ -80,7 +82,7 @@ class GridGUI():
         pygame.display.update() 
 
     def draw_tile(self, i, j, color=COLORS['light_grey'], width=0):
-        xpos, ypos = [ind*self.box_size + self.total_border for ind in (j, i)]
+        xpos, ypos = self.get_pos_from_inds(i,j)
         box = pygame.Rect(xpos, ypos, self.box_size, self.box_size)
         pygame.draw.rect(self.screen, color, box, width)
         if self.g.viewable_grid[i][j].isdigit():
@@ -124,6 +126,10 @@ class GridGUI():
 
     def translate_coords_to_grid(self, x, y):
         return (x, y-self.timer.h)
+
+    def get_pos_from_inds(self, i, j): 
+        x, y = [ind*self.box_size + self.total_border for ind in (j, i)]
+        return (x,y)
 
     def get_box_inds_from_pos(self, x, y):
         x, y = self.translate_coords_to_grid(x,y)
@@ -298,19 +304,45 @@ class GridGUI():
                 if event.type == pygame.MOUSEBUTTONDOWN and exit_main_menu_box.collidepoint(event.pos):
                     return False
 
+    def blink_cursor(self):
+        # setup values
+        cursor_dims = self.box_size*.1, self.box_size*.8
+        cursor_pos = self.get_pos_from_inds(*self.selected)
+        
+        # modify position
+        cursor_offset = self.box_size*.2
+        cursor_pos_updated = [p + cursor_offset for p in cursor_pos]
+        
+        # create rect
+        cursor = pygame.Rect(cursor_pos_updated, cursor_dims)
+        
+        # get color
+        if self.blink_restore_color is None:
+            self.blink_restore_color = self.screen.get_at([int(p) for p in cursor_pos])
+        color = COLORS['black'] if self.blink_on else self.blink_restore_color
+        self.blink_on = self.timer.clock[0] % 100 == 0
+        print(self.timer.clock[0])
+
+        # draw
+        pygame.draw.rect(self.screen, COLORS['black'], cursor)
+
+        # translate coords & update display
+        cursor.x, cursor.y = self.translate_coords_from_grid(cursor.x, cursor.y)
+        pygame.display.update(cursor)
     
     def play_game(self):
         first_click = False
         while True: 
             self.timer.update_clock_dynamic()
+            if not self.selected is None:
+                self.blink_cursor()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     raise StopIteration
                 
-                if not self.selected is None and event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
+                if event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
                     self.place_number(self.selected, 1)
-
-                if not self.selected is None and event.type == pygame.MOUSEBUTTONDOWN and event.button == 3: # right click
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                     self.remove_number(self.selected)
 
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
