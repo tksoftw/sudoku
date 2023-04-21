@@ -39,6 +39,9 @@ class GridGUI():
         self.box_size = self.get_box_size() 
         self.font_multiplier = self.get_px_to_pt_multiplier()
         self.font = pygame.font.Font(pygame.font.get_default_font(), int(self.box_size*self.font_multiplier))
+        
+        self.hover_color = COLORS['lighter_grey']
+        self.selected_color = COLORS['grey']
 
         self.hover = None
         self.selected = None
@@ -73,11 +76,15 @@ class GridGUI():
         A = self.row_length
         return (W - 2*B)/A
 
-    def draw_grid(self):    
+    def draw_grid(self, selected_tile=None):    
         self.screen.fill(COLORS['grey'])
         for i, row in enumerate(self.g.grid):
             for j, v in enumerate(row):
-                self.draw_tile(i,j)
+                if (i,j) != selected_tile:
+                    self.draw_tile(i,j)
+                else:
+                    self.draw_tile(i,j, color=self.hover_color)
+                    self.draw_tile(i,j, color=self.selected_color, width=5)
 
         pygame.display.update() 
 
@@ -95,31 +102,37 @@ class GridGUI():
         cell_translated = pygame.Rect(self.translate_coords_from_grid(*cell.topleft), cell.size)
         return cell_translated
 
-    def color_hover(self, i, j, color=COLORS['lighter_grey']):
+    def color_hover(self, i, j):
         tile_list = []
         if self.hover is not None and not self.g.is_hint(*self.hover) and self.hover != self.selected:
             tile_list.append(self.draw_tile(*self.hover))
             self.hover = None
         if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j) and (i,j) != self.selected:
-            tile_list.append(self.draw_tile(i, j, color))
+            tile_list.append(self.draw_tile(i, j, self.hover_color))
             self.hover = (i, j)
         if tile_list:
             pygame.display.update(tile_list)
     
-    def change_selected(self, i, j, color=COLORS['grey']):
+    def change_selected(self, i, j):
         if self.selected == (i,j):
-            self.draw_tile(*self.selected)
+            t = self.draw_tile(*self.selected)
             self.selected = None
-            pygame.display.update()
+            pygame.display.update(t)
+            self.blink_restore_color = None
             return
-
+        
+        tile_list = []
         if self.selected is not None:
-            self.draw_tile(*self.selected)
+            t = self.draw_tile(*self.selected)
+            tile_list.append(t)
             self.selected = None
+            self.blink_restore_color = None
         if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j):
-            self.draw_tile(i, j, color, 5)
+            t = self.draw_tile(i, j, self.selected_color, 5)
+            tile_list.append(t)
             self.selected = (i,j)
-        pygame.display.update()
+        if tile_list:
+            pygame.display.update(tile_list)
     
     def translate_coords_from_grid(self, x, y):
         return (x, y+self.timer.h)
@@ -224,7 +237,7 @@ class GridGUI():
                 if event.type == pygame.MOUSEBUTTONUP and exit_main_menu_box.collidepoint(event.pos):
                     return False
 
-        self.draw_grid()
+        self.draw_grid(self.selected)
         return resume_game
 
     def end_menu(self, win=True):
@@ -310,7 +323,7 @@ class GridGUI():
         cursor_pos = self.get_pos_from_inds(*self.selected)
         
         # modify position
-        cursor_offset = self.box_size*.2
+        cursor_offset = self.box_size*.1
         cursor_pos_updated = [p + cursor_offset for p in cursor_pos]
         
         # create rect
@@ -318,13 +331,16 @@ class GridGUI():
         
         # get color
         if self.blink_restore_color is None:
-            self.blink_restore_color = self.screen.get_at([int(p) for p in cursor_pos])
+            self.blink_restore_color = self.screen.get_at([int(p) for p in cursor_pos_updated])[:3]
         color = COLORS['black'] if self.blink_on else self.blink_restore_color
-        self.blink_on = self.timer.clock[0] % 100 == 0
-        print(self.timer.clock[0])
+        
+        # set blinking interval
+        blinks_per_sec = 2
+        timing_divisor = 1000//blinks_per_sec
+        self.blink_on = (self.timer.clock[0]//timing_divisor) % 2 == 0
 
         # draw
-        pygame.draw.rect(self.screen, COLORS['black'], cursor)
+        pygame.draw.rect(self.screen, color, cursor)
 
         # translate coords & update display
         cursor.x, cursor.y = self.translate_coords_from_grid(cursor.x, cursor.y)
