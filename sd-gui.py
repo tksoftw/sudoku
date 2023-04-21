@@ -50,6 +50,7 @@ class GridGUI():
 
         self.game_won = False
         self.draw_grid()
+        pygame.display.update() 
 
     def get_px_to_pt_multiplier(self, ch='O'):
         # x -> font pt, y -> font px
@@ -76,17 +77,18 @@ class GridGUI():
         A = self.row_length
         return (W - 2*B)/A
 
-    def draw_grid(self, selected_tile=None):    
+    def draw_grid(self):   
         self.screen.fill(COLORS['grey'])
         for i, row in enumerate(self.g.grid):
             for j, v in enumerate(row):
-                if (i,j) != selected_tile:
                     self.draw_tile(i,j)
-                else:
-                    self.draw_tile(i,j, color=self.hover_color)
-                    self.draw_tile(i,j, color=self.selected_color, width=5)
 
-        pygame.display.update() 
+    def draw_selected_tile(self):
+        i, j = self.selected
+        t1 = self.draw_tile(i,j, color=self.hover_color)
+        t2 = self.draw_tile(i,j, color=self.selected_color, width=5)
+        tile_list = [t1, t2]
+        return tile_list
 
     def draw_tile(self, i, j, color=COLORS['light_grey'], width=0):
         xpos, ypos = self.get_pos_from_inds(i,j)
@@ -237,7 +239,9 @@ class GridGUI():
                 if event.type == pygame.MOUSEBUTTONUP and exit_main_menu_box.collidepoint(event.pos):
                     return False
 
-        self.draw_grid(self.selected)
+        self.draw_grid()
+        self.draw_selected_tile()
+        pygame.display.update()
         return resume_game
 
     def end_menu(self, win=True):
@@ -346,6 +350,16 @@ class GridGUI():
         cursor.x, cursor.y = self.translate_coords_from_grid(cursor.x, cursor.y)
         pygame.display.update(cursor)
     
+    def place_number(self, i, j, n):
+        self.g.guess_number(i,j, str(n))
+        t = self.draw_selected_tile()
+        pygame.display.update(t)
+
+    def remove_number(self, i, j):
+        self.g.remove_guess(i,j)
+        t = self.draw_selected_tile()
+        pygame.display.update(t)
+
     def play_game(self):
         first_click = False
         while True: 
@@ -355,11 +369,14 @@ class GridGUI():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     raise StopIteration
-                
-                if event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
-                    self.place_number(self.selected, 1)
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                    self.remove_number(self.selected)
+               
+                if not self.selected is None:
+                    if event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
+                        self.place_number(*self.selected, 1)
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.is_in_playable_area(*event.pos):
+                        i, j = self.get_box_inds_from_pos(*event.pos)
+                        if (i,j) == self.selected:
+                            self.remove_number(*self.selected)
 
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     resume_game = self.pause_menu()
