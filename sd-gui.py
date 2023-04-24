@@ -12,6 +12,7 @@ COLORS = {
     'light_grey': (192,192,192),
     'mid_grey': (153,153,153),
     'grey': (138,138,138),
+    'dark_grey':(85,85,85),
     'red': (255,0,0),
     'orange': (255,130,0),
     'yellow': (255,230,0),
@@ -95,7 +96,7 @@ class GridGUI():
         box = pygame.Rect(xpos, ypos, self.box_size, self.box_size)
         pygame.draw.rect(self.screen, color, box, width)
         if self.g.viewable_grid[i][j].isdigit():
-            num_color = COLORS['black'] if (i, j) in self.g.hints else COLORS['mid_grey']
+            num_color = COLORS['black'] if (i, j) in self.g.hints else COLORS['dark_grey']
             cell_number = self.font.render(self.g.viewable_grid[i][j], True, num_color)
             aligner = cell_number.get_rect(center=(box.centerx, box.centery))
             self.screen.blit(cell_number, aligner)
@@ -106,7 +107,7 @@ class GridGUI():
 
     def color_hover(self, i, j):
         tile_list = []
-        if self.hover is not None and not self.g.is_hint(*self.hover) and self.hover != self.selected:
+        if not self.hover is None and not self.g.is_hint(*self.hover) and self.hover != self.selected:
             tile_list.append(self.draw_tile(*self.hover))
             self.hover = None
         if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j) and (i,j) != self.selected:
@@ -124,7 +125,7 @@ class GridGUI():
             return
         
         tile_list = []
-        if self.selected is not None:
+        if not self.selected is None:
             t = self.draw_tile(*self.selected)
             tile_list.append(t)
             self.selected = None
@@ -136,6 +137,28 @@ class GridGUI():
         if tile_list:
             pygame.display.update(tile_list)
     
+    def handle_arrow_key(self, key_n):
+        # 0 = UP
+        # 1 = DOWN
+        # 2 = LEFT
+        # 3 = RIGHT
+        
+        i, j = self.selected
+        # (i,j) offset
+        offset_mat = [  [1, 0],
+                        [-1, 0],
+                        [0,  1],
+                        [0, -1]
+                     ]
+        
+        r_increase, c_increase = offset_mat[key_n]
+
+        i, j = i+r_increase, j+c_increase
+        while self.g.is_hint(i,j):
+            i, j = i+r_increase, j+c_increase
+
+        self.change_selected(i, j)
+
     def translate_coords_from_grid(self, x, y):
         return (x, y+self.timer.h)
 
@@ -357,11 +380,12 @@ class GridGUI():
 
     def remove_number(self, i, j):
         self.g.remove_guess(i,j)
-        t = self.draw_selected_tile()
+        t = self.draw_tile(i,j) if (i,j) != self.selected else self.draw_selected_tile()
         pygame.display.update(t)
 
     def play_game(self):
         first_click = False
+        print(self.g.grid)
         while True: 
             self.timer.update_clock_dynamic()
             if not self.selected is None:
@@ -370,13 +394,16 @@ class GridGUI():
                 if event.type == pygame.QUIT:
                     raise StopIteration
                
-                if not self.selected is None:
-                    if event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
-                        self.place_number(*self.selected, 1)
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.is_in_playable_area(*event.pos):
-                        i, j = self.get_box_inds_from_pos(*event.pos)
-                        if (i,j) == self.selected:
-                            self.remove_number(*self.selected)
+                if not self.selected is None and event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
+                    n = (event.key - pygame.K_1)+1
+                    self.place_number(*self.selected, n)
+                    if self.g.is_solved():
+                        self.end_menu()
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.is_in_playable_area(*event.pos):
+                    i, j = self.get_box_inds_from_pos(*event.pos)
+                    if self.g.is_guess(i,j):
+                        self.remove_number(i,j)
 
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     resume_game = self.pause_menu()

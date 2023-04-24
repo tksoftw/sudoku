@@ -320,7 +320,10 @@ class Grid:
     def is_hint(self, i, j):
         return (i,j) in self.hints
 
-    def is_solved(self, i, j):
+    def is_guess(self, i, j):
+        return self.viewable_grid[i][j] != '.' and not self.is_hint(i,j)
+
+    def is_solved(self):
         return self.boardToStr(self.viewable_grid) == self.boardToStr(self.grid)
 
     def guess_number(self, i, j, n: str):
