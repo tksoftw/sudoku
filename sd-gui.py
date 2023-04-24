@@ -107,7 +107,7 @@ class GridGUI():
 
     def color_hover(self, i, j):
         tile_list = []
-        if not self.hover is None and not self.g.is_hint(*self.hover) and self.hover != self.selected:
+        if self.hover is not None and not self.g.is_hint(*self.hover) and self.hover != self.selected:
             tile_list.append(self.draw_tile(*self.hover))
             self.hover = None
         if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j) and (i,j) != self.selected:
@@ -117,6 +117,7 @@ class GridGUI():
             pygame.display.update(tile_list)
     
     def change_selected(self, i, j):
+        # restore if double click
         if self.selected == (i,j):
             t = self.draw_tile(*self.selected)
             self.selected = None
@@ -125,38 +126,39 @@ class GridGUI():
             return
         
         tile_list = []
-        if not self.selected is None:
+        # restore previous
+        if self.selected is not None:
             t = self.draw_tile(*self.selected)
             tile_list.append(t)
             self.selected = None
             self.blink_restore_color = None
-        if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j):
-            t = self.draw_tile(i, j, self.selected_color, 5)
-            tile_list.append(t)
+        # draw selected tile
+        if self.g.is_in_bounds(i,j) and not self.g.is_hint(i,j): 
             self.selected = (i,j)
+            tiles = self.draw_selected_tile()
+            tile_list.extend(tiles)
         if tile_list:
             pygame.display.update(tile_list)
     
     def handle_arrow_key(self, key_n):
-        # 0 = UP
-        # 1 = DOWN
-        # 2 = LEFT
-        # 3 = RIGHT
-        
+        # 0 = RIGHT
+        # 1 = LEFT
+        # 2 = DOWN
+        # 3 = UP
+
         i, j = self.selected
         # (i,j) offset
-        offset_mat = [  [1, 0],
-                        [-1, 0],
-                        [0,  1],
-                        [0, -1]
+        offset_mat = [  [0, 1],
+                        [0, -1],
+                        [1,  0],
+                        [-1, 0]
                      ]
         
         r_increase, c_increase = offset_mat[key_n]
 
-        i, j = i+r_increase, j+c_increase
+        i, j = (i+r_increase)%self.g.dim, (j+c_increase)%self.g.dim
         while self.g.is_hint(i,j):
-            i, j = i+r_increase, j+c_increase
-
+            i, j = (i+r_increase)%self.g.dim, (j+c_increase)%self.g.dim
         self.change_selected(i, j)
 
     def translate_coords_from_grid(self, x, y):
@@ -388,17 +390,24 @@ class GridGUI():
         print(self.g.grid)
         while True: 
             self.timer.update_clock_dynamic()
-            if not self.selected is None:
+            if self.selected is not None:
                 self.blink_cursor()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     raise StopIteration
                
-                if not self.selected is None and event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
+                if self.selected is not None and event.type == pygame.KEYDOWN and event.key in range(pygame.K_1, pygame.K_9+1):
                     n = (event.key - pygame.K_1)+1
                     self.place_number(*self.selected, n)
                     if self.g.is_solved():
                         self.end_menu()
+                
+                if self.selected is not None and event.type == pygame.KEYDOWN and event.key in range(pygame.K_RIGHT, pygame.K_UP+1):
+                    n = event.key - pygame.K_RIGHT
+                    self.handle_arrow_key(n)
+                
+                if self.selected is not None and event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
+                    self.remove_number(*self.selected)
 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.is_in_playable_area(*event.pos):
                     i, j = self.get_box_inds_from_pos(*event.pos)
@@ -455,7 +464,8 @@ class TimerBar:
 
     def get_clock(self):
         clock_aligner = pygame.Rect(0,0, self.w/6, self.h/1.25)
-        clock_aligner.center = self.screen.get_rect().center
+        clock_aligner.center = self.screen.get_rect().midright
+        clock_aligner.x -= self.screen.get_rect().w*0.1
 
         clock_time = 0
 
