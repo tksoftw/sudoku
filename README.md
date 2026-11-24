@@ -21,7 +21,8 @@ To win: fill each row, column, and 3×3 box with the digits 1 through 9 exactly 
 | --- | --- |
 | Arrow keys | Move to the next editable square in that direction (skips clues) |
 | Backspace | Clear the selected square |
-| Right-click | Erase the entry under the pointer |
+| Left-click | Select square |
+| Right-click | Erase entry in square under the pointer |
 | Esc | Pause/Unpause |
 
 | Seven moves into the puzzle | The same game after pressing Esc |
