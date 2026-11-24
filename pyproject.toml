@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sudoku-player-and-solver"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["pygame"]
+
+[tool.setuptools]
+py-modules = ["sudoku"]
+script-files = ["sd-gui.py"]
