@@ -1,6 +1,6 @@
 # Sudoku player and solver
 
-Play and solve Sudoku! Written in pure python, game powered by [Pygame](https://www.pygame.org/docs/). 
+Play and solve Sudoku! Solver written in pure python. Game powered by [Pygame](https://www.pygame.org/docs/). 
 
 ## Running the game
 
